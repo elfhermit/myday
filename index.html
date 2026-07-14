@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="習慣打卡、待辦、番茄鐘、日記與統計的私人自律 App">
+<meta name="color-scheme" content="dark light">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#101411" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f6fbf3" media="(prefers-color-scheme: light)">
+<title>我的日常</title>
+<style>
+/* ===== Material Design 3 · 深色為主、自動跟隨系統淺色 ===== */
+:root{
+  color-scheme:dark;
+  /* M3 tokens（green seed） */
+  --primary:#7fdb9f; --on-primary:#00391c;
+  --primary-container:#00522a; --on-primary-container:#9bf7b9;
+  --secondary-container:#3d4b41; --on-secondary-container:#d3e8d6;
+  --tertiary:#a2cdf6; --on-tertiary:#053351;
+  --surface:#101411; --surface-c-lowest:#0b0f0c; --surface-c-low:#181d19;
+  --surface-c:#1c211d; --surface-c-high:#262b27; --surface-c-highest:#313633;
+  --on-surface:#e0e4dd; --on-surface-var:#bfc9bf;
+  --outline:#8a938a; --outline-var:#404943;
+  --error:#ffb4ab; --gold:#e7c04b; --on-gold:#3c2f00;
+  --scrim:rgba(0,0,0,.55);
+  --e1:0 1px 2px rgba(0,0,0,.3),0 1px 3px 1px rgba(0,0,0,.15);
+  --e3:0 4px 8px 3px rgba(0,0,0,.15),0 1px 3px rgba(0,0,0,.3);
+  /* 相容別名（JS 內聯樣式使用） */
+  --accent:var(--primary); --accent-dim:color-mix(in srgb,var(--primary) 16%,transparent);
+  --danger:var(--error); --muted-c:var(--on-surface-var);
+  --ease:cubic-bezier(.2,0,0,1);
+}
+@media (prefers-color-scheme: light){
+  :root{
+    color-scheme:light;
+    --primary:#006d3a; --on-primary:#ffffff;
+    --primary-container:#97f7b7; --on-primary-container:#00210f;
+    --secondary-container:#d3e8d6; --on-secondary-container:#101f15;
+    --tertiary:#256489; --on-tertiary:#ffffff;
+    --surface:#f6fbf3; --surface-c-lowest:#ffffff; --surface-c-low:#f0f5ed;
+    --surface-c:#eaefe7; --surface-c-high:#e4eae2; --surface-c-highest:#dfe4dc;
+    --on-surface:#171d18; --on-surface-var:#404943;
+    --outline:#707972; --outline-var:#c0c9bf;
+    --error:#ba1a1a; --gold:#745b00; --on-gold:#ffffff;
+    --scrim:rgba(0,0,0,.4);
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;background:var(--surface);color:var(--on-surface);
+  font-family:Roboto,system-ui,-apple-system,"Noto Sans TC","PingFang TC",sans-serif;
+  touch-action:manipulation;}
+body{padding-bottom:calc(96px + env(safe-area-inset-bottom));}
+button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer;
+  position:relative;overflow:hidden;user-select:none;-webkit-user-select:none;}
+input,select,textarea{font-family:inherit;font-size:16px;color:var(--on-surface);
+  background:var(--surface-c-high);border:1px solid var(--outline-var);border-radius:12px;
+  padding:12px 14px;outline:none;width:100%;transition:border-color .15s var(--ease),box-shadow .15s var(--ease);}
+input:focus,textarea:focus{border-color:var(--primary);box-shadow:inset 0 0 0 1px var(--primary);}
+textarea{resize:vertical;min-height:96px;line-height:1.6;}
+.hidden{display:none !important;}
+.muted{color:var(--on-surface-var);font-size:13px;}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+
+/* Ripple（M3 state layer） */
+.ripple{position:absolute;border-radius:50%;background:currentColor;opacity:.14;
+  transform:scale(0);animation:rip .5s var(--ease) forwards;pointer-events:none;}
+@keyframes rip{to{transform:scale(2.6);opacity:0;}}
+
+/* ===== Top App Bar ===== */
+header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;
+  padding:calc(14px + env(safe-area-inset-top)) 18px 10px;
+  background:color-mix(in srgb,var(--surface) 90%,transparent);backdrop-filter:blur(14px);}
+header h1{font-size:22px;font-weight:500;margin:0;letter-spacing:.2px;}
+.icon-btn{font-size:20px;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.icon-btn:active{background:var(--surface-c-high);}
+
+.banner{margin:12px 16px;padding:12px 16px;border-radius:16px;background:var(--surface-c-high);
+  border:1px solid var(--outline-var);color:var(--gold);font-size:13px;line-height:1.5;}
+main{padding:12px 16px 0;max-width:560px;margin:0 auto;}
+.tab{animation:fade .22s var(--ease);}
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+/* ===== 遊戲化 ===== */
+.gamebar{background:var(--surface-c);border-radius:20px;padding:16px 18px;margin-bottom:12px;box-shadow:var(--e1);}
+.g-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.lvl-chip{background:var(--gold);color:var(--on-gold);font-weight:800;font-size:13px;border-radius:999px;padding:4px 12px;flex:none;}
+.g-title{font-size:14.5px;font-weight:700;flex:1;}
+.g-xp{font-size:12px;color:var(--on-surface-var);}
+.xp-bar{height:8px;border-radius:999px;background:var(--surface-c-highest);overflow:hidden;}
+.xp-bar>i{display:block;height:100%;background:var(--gold);border-radius:999px;transition:width .5s var(--ease);}
+.g-day{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 8px;}
+.g-day .big{font-size:22px;font-weight:700;}
+.bar{height:10px;border-radius:999px;background:var(--surface-c-highest);overflow:hidden;}
+.bar>i{display:block;height:100%;border-radius:999px;background:var(--primary);transition:width .4s var(--ease);}
+
+.quests{background:var(--surface-c);border-radius:20px;padding:14px 18px;margin-bottom:12px;box-shadow:var(--e1);}
+.quests h3{margin:0 0 4px;font-size:14px;font-weight:600;display:flex;justify-content:space-between;align-items:center;}
+.quest-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--outline-var);}
+.quest-row:last-child{border-bottom:none;}
+.q-mark{width:24px;height:24px;border-radius:50%;border:2px solid var(--outline);flex:none;
+  display:flex;align-items:center;justify-content:center;font-size:12px;color:transparent;transition:all .2s var(--ease);}
+.quest-row.done .q-mark{background:var(--primary);border-color:var(--primary);color:var(--on-primary);}
+.q-name{flex:1;font-size:14px;}
+.quest-row.done .q-name{color:var(--on-surface-var);text-decoration:line-through;}
+.q-xp{font-size:12.5px;color:var(--gold);font-weight:700;flex:none;}
+
+.toasts{position:fixed;left:0;right:0;bottom:calc(108px + env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;align-items:center;gap:8px;z-index:60;pointer-events:none;}
+.toast{background:var(--surface-c-highest);color:var(--on-surface);font-size:14px;font-weight:600;
+  padding:11px 20px;border-radius:999px;box-shadow:var(--e3);animation:toast 2.2s var(--ease) forwards;}
+.toast.xp{color:var(--gold);}
+@keyframes toast{0%{opacity:0;transform:translateY(14px);}12%{opacity:1;transform:none;}80%{opacity:1;}100%{opacity:0;transform:translateY(-8px);}}
+.lvlup{position:fixed;inset:0;z-index:70;background:var(--scrim);backdrop-filter:blur(6px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;animation:fade .3s;}
+.lvlup .l-ico{font-size:64px;animation:pop .5s var(--ease);}
+.lvlup .l-lv{font-size:32px;font-weight:800;color:var(--gold);}
+.lvlup .l-t{font-size:16px;}
+@keyframes pop{0%{transform:scale(.3);}70%{transform:scale(1.15);}100%{transform:scale(1);}}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:65;overflow:hidden;}
+.confetti span{position:absolute;top:-40px;font-size:22px;animation:cfall linear forwards;}
+@keyframes cfall{to{transform:translateY(110vh) rotate(540deg);opacity:.6;}}
+
+/* ===== 習慣卡（M3 filled card） ===== */
+.habit{display:flex;align-items:center;gap:12px;background:var(--surface-c);
+  border:1.5px solid transparent;border-radius:16px;padding:13px 14px;margin-bottom:10px;
+  transition:border-color .2s var(--ease),background .2s var(--ease);}
+.habit:active{background:var(--surface-c-high);}
+.habit.done{border-color:var(--hc,var(--primary));background:color-mix(in srgb,var(--hc,var(--primary)) 8%,var(--surface-c));}
+.habit.over{border-color:var(--error);}
+.h-icon{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:22px;background:var(--hc,#555);flex:none;}
+.h-body{flex:1;min-width:0;}
+.h-name{font-size:15.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.h-sub{font-size:12px;color:var(--on-surface-var);margin-top:3px;}
+.h-sub .warn{color:var(--error);font-weight:700;}
+.h-check{width:36px;height:36px;border-radius:50%;border:2px solid var(--outline);flex:none;
+  display:flex;align-items:center;justify-content:center;font-size:16px;color:transparent;transition:all .2s var(--ease);}
+.habit.done .h-check{background:var(--hc,var(--primary));border-color:var(--hc,var(--primary));color:var(--surface);}
+.habit.bad .h-check{border-style:dashed;color:var(--on-surface-var);font-size:13px;}
+.habit.over .h-check{background:var(--error);border-color:var(--error);color:var(--surface);border-style:solid;}
+.habit.pulse{animation:pulse .4s var(--ease);}
+@keyframes pulse{0%{transform:scale(1);}40%{transform:scale(1.025);}100%{transform:scale(1);}}
+.mini{width:34px;height:34px;border-radius:50%;background:var(--surface-c-high);
+  font-size:16px;flex:none;color:var(--on-surface-var);display:flex;align-items:center;justify-content:center;}
+.empty{text-align:center;color:var(--on-surface-var);padding:40px 20px;font-size:14px;line-height:1.8;}
+.empty .e-ico{font-size:44px;display:block;margin-bottom:8px;}
+
+/* ===== 待辦 ===== */
+.quickadd{display:flex;gap:8px;margin-bottom:14px;}
+.quickadd input[type=text]{flex:1;border-radius:999px;padding-left:18px;}
+.quickadd input[type=date]{width:46px;padding:10px 8px;flex:none;border-radius:999px;}
+.quickadd .add{flex:none;width:50px;height:50px;border-radius:999px;background:var(--primary);color:var(--on-primary);font-size:24px;font-weight:700;}
+.todo{display:flex;align-items:center;gap:12px;background:var(--surface-c);border-radius:16px;padding:13px 15px;margin-bottom:9px;}
+.t-check{width:26px;height:26px;border-radius:50%;border:2px solid var(--outline);flex:none;
+  display:flex;align-items:center;justify-content:center;font-size:14px;color:transparent;transition:all .2s var(--ease);}
+.todo.done .t-check{background:var(--primary);border-color:var(--primary);color:var(--on-primary);}
+.t-body{flex:1;min-width:0;}
+.t-text{font-size:15px;word-break:break-word;}
+.todo.done .t-text{color:var(--on-surface-var);text-decoration:line-through;}
+.t-due{font-size:12px;color:var(--on-surface-var);margin-top:2px;}
+.t-due.late{color:var(--error);}
+.t-del{color:var(--on-surface-var);font-size:16px;padding:6px;flex:none;border-radius:50%;}
+.sec-toggle{display:flex;justify-content:space-between;align-items:center;color:var(--on-surface-var);
+  font-size:13.5px;padding:12px 6px 8px;width:100%;}
+.sec-toggle .clear{color:var(--error);font-size:13px;padding:4px 10px;}
+
+/* ===== 番茄鐘 ===== */
+.pomo-wrap{display:flex;flex-direction:column;align-items:center;padding-top:16px;}
+.pomo-mode{font-size:15px;letter-spacing:4px;color:var(--on-surface-var);margin-bottom:16px;}
+.pomo-mode.work-on{color:var(--primary);}
+.pomo-mode.rest-on{color:var(--tertiary);}
+.pomo-ring{position:relative;width:min(70vw,260px);aspect-ratio:1;}
+.pomo-ring svg{width:100%;height:100%;transform:rotate(-90deg);}
+.ring-bg{fill:none;stroke:var(--surface-c-high);stroke-width:10;}
+.ring-fg{fill:none;stroke:var(--primary);stroke-width:10;stroke-linecap:round;
+  stroke-dasharray:553;stroke-dashoffset:0;transition:stroke-dashoffset .3s linear,stroke .3s;}
+.pomo-time{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-size:50px;font-weight:700;font-variant-numeric:tabular-nums;}
+.pomo-time small{font-size:13px;color:var(--on-surface-var);font-weight:400;margin-top:4px;}
+.pomo-btns{display:flex;gap:12px;margin-top:26px;}
+.btn{height:44px;display:inline-flex;align-items:center;justify-content:center;
+  padding:0 24px;border-radius:999px;background:var(--secondary-container);color:var(--on-secondary-container);
+  font-size:14.5px;font-weight:600;transition:box-shadow .15s var(--ease);}
+.btn:active{box-shadow:var(--e1);}
+.btn.primary{background:var(--primary);color:var(--on-primary);min-width:112px;}
+.btn.danger{background:transparent;color:var(--error);border:1px solid var(--outline-var);}
+.pomo-today{margin-top:24px;font-size:14px;text-align:center;line-height:1.7;}
+
+/* ===== 日記 ===== */
+.mood-row{display:flex;gap:8px;margin-bottom:12px;}
+.mood-row button{flex:1;font-size:26px;padding:10px 0;border-radius:16px;background:var(--surface-c-high);
+  border:2px solid transparent;filter:grayscale(.7) opacity(.7);transition:all .2s var(--ease);}
+.mood-row button.sel{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 14%,var(--surface-c));filter:none;transform:scale(1.06);}
+.diary-save{margin-top:12px;width:100%;}
+.diary-entry{background:var(--surface-c);border-radius:16px;padding:14px 16px;margin-bottom:10px;}
+.d-head{display:flex;justify-content:space-between;font-size:12.5px;color:var(--on-surface-var);margin-bottom:6px;}
+.d-text{font-size:14.5px;line-height:1.65;white-space:pre-wrap;word-break:break-word;}
+
+/* ===== 統計 ===== */
+.stat-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.stat-card{background:var(--surface-c);border-radius:16px;padding:14px 16px;}
+.stat-card .v{font-size:21px;font-weight:700;margin-top:4px;}
+.stat-card .v small{font-size:13px;color:var(--on-surface-var);font-weight:400;}
+.panel{background:var(--surface-c);border-radius:20px;padding:16px 18px;margin-bottom:14px;}
+.panel h3{margin:0 0 12px;font-size:15px;font-weight:600;display:flex;justify-content:space-between;align-items:center;}
+.hm-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.hm-head button{font-size:18px;padding:4px 16px;color:var(--on-surface-var);border-radius:999px;}
+.hm-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+.hm-grid .wd{text-align:center;font-size:11px;color:var(--on-surface-var);padding-bottom:2px;}
+.hm-cell{aspect-ratio:1;border-radius:8px;background:var(--surface-c-high);
+  display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--on-surface-var);}
+.hm-cell.l1{background:color-mix(in srgb,var(--primary) 22%,var(--surface-c-high));}
+.hm-cell.l2{background:color-mix(in srgb,var(--primary) 45%,var(--surface-c-high));color:var(--on-surface);}
+.hm-cell.l3{background:color-mix(in srgb,var(--primary) 72%,var(--surface-c-high));color:var(--on-primary);}
+.hm-cell.l4{background:var(--primary);color:var(--on-primary);font-weight:700;}
+.hm-cell.today{outline:2px solid var(--on-surface);outline-offset:1px;}
+.hm-cell.off{background:transparent;}
+.wk-bars{display:flex;align-items:flex-end;gap:8px;height:110px;}
+.wk-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;}
+.wk-bar{width:100%;max-width:34px;border-radius:8px 8px 4px 4px;background:color-mix(in srgb,var(--primary) 14%,transparent);position:relative;overflow:hidden;min-height:3px;}
+.wk-bar>i{position:absolute;bottom:0;left:0;right:0;background:var(--primary);border-radius:inherit;}
+.wk-lb{font-size:11px;color:var(--on-surface-var);}
+.hs-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--outline-var);}
+.hs-row:last-child{border-bottom:none;}
+.hs-ico{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;background:var(--hc,#555);flex:none;}
+.hs-name{flex:1;font-size:14.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.hs-num{font-size:12px;color:var(--on-surface-var);text-align:right;line-height:1.5;flex:none;}
+.metric-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--outline-var);width:100%;text-align:left;}
+.metric-row:last-child{border-bottom:none;}
+.m-name{flex:1;font-size:14.5px;}
+.m-val{font-size:14px;color:var(--primary);font-weight:700;}
+.badge-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.badge{display:flex;flex-direction:column;align-items:center;gap:5px;padding:11px 2px;
+  background:var(--surface-c-high);border-radius:16px;border:1.5px solid transparent;}
+.badge .b-ico{font-size:26px;}
+.badge .b-name{font-size:10.5px;color:var(--on-surface-var);text-align:center;line-height:1.3;}
+.badge.got{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 12%,var(--surface-c-high));}
+.badge.got .b-name{color:var(--gold);font-weight:700;}
+.badge.locked .b-ico{filter:grayscale(1) opacity(.35);}
+.report p{margin:7px 0;font-size:14px;line-height:1.7;}
+.report .up{color:var(--primary);font-weight:700;}
+.report .dn{color:var(--error);font-weight:700;}
+.tip{background:color-mix(in srgb,var(--primary) 12%,var(--surface-c));border-radius:14px;padding:12px 14px;font-size:13.5px;line-height:1.7;margin-top:10px;}
+.spark{width:100%;height:150px;margin-top:8px;}
+
+/* ===== FAB / Navigation Bar（M3） ===== */
+.fab{position:fixed;right:20px;bottom:calc(104px + env(safe-area-inset-bottom));width:58px;height:58px;
+  border-radius:18px;background:var(--primary-container);color:var(--on-primary-container);
+  font-size:28px;font-weight:600;z-index:30;box-shadow:var(--e3);
+  display:flex;align-items:center;justify-content:center;transition:transform .15s var(--ease);}
+.fab:active{transform:scale(.94);}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;
+  background:var(--surface-c);padding:10px 4px calc(12px + env(safe-area-inset-bottom));}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+  font-size:11.5px;color:var(--on-surface-var);overflow:visible;}
+.nav-btn span{font-size:19px;padding:4px 18px;border-radius:999px;
+  filter:grayscale(1) opacity(.65);transition:background .2s var(--ease);}
+.nav-btn.active{color:var(--on-surface);font-weight:700;}
+.nav-btn.active span{background:var(--secondary-container);filter:none;}
+
+/* ===== Bottom Sheet（M3） ===== */
+.overlay{position:fixed;inset:0;background:var(--scrim);z-index:40;display:flex;align-items:flex-end;animation:fade .15s var(--ease);}
+.sheet{background:var(--surface-c-low);border-radius:28px 28px 0 0;width:100%;max-width:560px;margin:0 auto;
+  max-height:88vh;overflow-y:auto;padding:8px 22px calc(26px + env(safe-area-inset-bottom));animation:up .25s var(--ease);}
+@keyframes up{from{transform:translateY(48px);opacity:.5;}to{transform:none;opacity:1;}}
+.sheet .grab{width:32px;height:4px;border-radius:999px;background:var(--outline);opacity:.5;margin:8px auto 16px;}
+.sheet h2{font-size:18px;font-weight:600;margin:0 0 14px;}
+.f-label{font-size:13px;color:var(--on-surface-var);margin:16px 0 8px;font-weight:500;}
+.emoji-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.emoji-grid button{font-size:22px;padding:8px 0;border-radius:14px;border:2px solid transparent;}
+.emoji-grid button.sel{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 14%,transparent);}
+.color-row{display:flex;gap:10px;flex-wrap:wrap;}
+.color-row button{width:36px;height:36px;border-radius:50%;border:3px solid transparent;overflow:visible;}
+.color-row button.sel{border-color:var(--on-surface);}
+.day-row{display:flex;gap:6px;}
+.day-row button{flex:1;padding:10px 0;border-radius:10px;background:var(--surface-c-high);font-size:13.5px;color:var(--on-surface-var);border:1px solid transparent;}
+.day-row button.sel{background:var(--secondary-container);color:var(--on-secondary-container);font-weight:700;}
+.seg{display:flex;gap:0;border:1px solid var(--outline-var);border-radius:999px;overflow:hidden;}
+.seg button{flex:1;padding:11px 0;font-size:14px;color:var(--on-surface-var);border-radius:0;}
+.seg button+button{border-left:1px solid var(--outline-var);}
+.seg button.sel{background:var(--secondary-container);color:var(--on-secondary-container);font-weight:700;}
+.seg button.sel.bad{background:color-mix(in srgb,var(--error) 22%,var(--surface-c));color:var(--error);}
+.stepper{display:flex;align-items:center;gap:14px;}
+.stepper button{width:42px;height:42px;border-radius:50%;background:var(--surface-c-high);font-size:20px;}
+.stepper .val{font-size:20px;font-weight:700;min-width:40px;text-align:center;}
+.chip-row{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{padding:9px 14px;border-radius:10px;background:transparent;border:1px solid var(--outline-var);font-size:13px;color:var(--on-surface);}
+.chip:active{background:var(--secondary-container);}
+.sheet-btns{display:flex;gap:10px;margin-top:24px;}
+.sheet-btns .btn{flex:1;}
+.set-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--outline-var);gap:14px;}
+.set-row:last-child{border-bottom:none;}
+.set-row .lb{font-size:15px;}
+.set-row input{width:88px;text-align:center;}
+.set-row .btn{flex:none;height:38px;padding:0 18px;font-size:14px;}
+
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>我的日常</h1>
+    <div id="hd-date" class="muted"></div>
+  </div>
+  <button id="btn-settings" class="icon-btn" aria-label="設定">⚙️</button>
+</header>
+
+<div id="storage-warn" class="banner hidden">
+  ⚠️ 目前的開啟方式無法永久保存資料（每次開啟都會重置）。請依「使用說明」以正確方式開啟，或養成「設定 → 匯出備份」的習慣。
+</div>
+
+<main>
+  <section id="tab-today" class="tab"></section>
+  <section id="tab-todo" class="tab hidden">
+    <div class="quickadd">
+      <input type="text" id="todo-text" placeholder="新增待辦事項…" enterkeyhint="done">
+      <input type="date" id="todo-date" title="到期日（可不選）">
+      <button class="add" id="todo-add" aria-label="新增">＋</button>
+    </div>
+    <div id="todo-list"></div>
+  </section>
+  <section id="tab-pomo" class="tab hidden">
+    <div class="pomo-wrap">
+      <div class="pomo-mode" id="pomo-mode">專 注</div>
+      <div class="pomo-ring">
+        <svg viewBox="0 0 200 200">
+          <circle class="ring-bg" cx="100" cy="100" r="88"/>
+          <circle class="ring-fg" id="ring-fg" cx="100" cy="100" r="88"/>
+        </svg>
+        <div class="pomo-time">
+          <span id="pomo-time">25:00</span>
+          <small id="pomo-hint">準備開始</small>
+        </div>
+      </div>
+      <div class="pomo-btns">
+        <button id="pomo-start" class="btn primary">開始</button>
+        <button id="pomo-reset" class="btn">重設</button>
+        <button id="pomo-skip" class="btn">跳過</button>
+      </div>
+      <div class="pomo-today" id="pomo-today"></div>
+    </div>
+  </section>
+  <section id="tab-diary" class="tab hidden"></section>
+  <section id="tab-stats" class="tab hidden"></section>
+</main>
+
+<button id="fab" class="fab" aria-label="新增">＋</button>
+
+<nav>
+  <button class="nav-btn active" data-tab="today"><span>✅</span>今日</button>
+  <button class="nav-btn" data-tab="todo"><span>📝</span>待辦</button>
+  <button class="nav-btn" data-tab="pomo"><span>🍅</span>專注</button>
+  <button class="nav-btn" data-tab="diary"><span>📔</span>日記</button>
+  <button class="nav-btn" data-tab="stats"><span>📊</span>統計</button>
+</nav>
+
+<div id="overlay" class="overlay hidden"><div id="sheet" class="sheet"></div></div>
+<div id="toasts" class="toasts"></div>
+<div id="lvlup" class="lvlup hidden"></div>
+<div id="confetti" class="confetti"></div>
+<input type="file" id="import-file" accept=".json,application/json" class="hidden">
+
+<script>
+'use strict';
+/* ================= 工具 ================= */
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const WEEK = ['日','一','二','三','四','五','六'];
+const DAY_ORDER = [1,2,3,4,5,6,0]; // 週一開始
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const pad = n => ('0'+n).slice(-2);
+const fmt = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const todayStr = () => fmt(new Date());
+const addDays = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+const weekStart = d => addDays(d, -((d.getDay()+6)%7)); // 週一
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const vib = p => { try { navigator.vibrate && navigator.vibrate(p); } catch(e){} };
+const hashStr = s => { let h = 0; for(let i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i))>>>0; } return h; };
+
+const EMOJIS = ['💪','🏃','📖','🧘','💧','😴','🥗','🚴','✍️','🎸','🧹','💊','🦷','🌅','🌙','💻','🗣️','💰','🚭','☕','🌱','🎯','🧠','📵','🙏','🎨','🎧','🍟'];
+const COLORS = ['#34d399','#60a5fa','#f472b6','#fbbf24','#a78bfa','#fb923c','#22d3ee','#f87171'];
+const MOODS = ['😄','🙂','😐','😞','😡'];
+
+/* ================= 資料層 ================= */
+const LSKEY = 'myday_v1';
+let storageOK = true;
+const DEFAULTS = () => ({
+  habits: [], todos: [],
+  pomo: { work: 25, rest: 5, state: null, log: {} },
+  diary: {}, metrics: [],
+  game: { xp: 0, badges: {}, quests: {}, todoCount: 0 },
+  doneOpen: false, ver: 2
+});
+let D = DEFAULTS();
+
+function migrate(){
+  D.game = Object.assign(DEFAULTS().game, D.game || {});
+  D.diary = D.diary || {}; D.metrics = D.metrics || [];
+  for(const h of D.habits){
+    if(!h.freq) h.freq = { kind:'days', days: h.days || [0,1,2,3,4,5,6] };
+    if(!h.freq.days) h.freq.days = [0,1,2,3,4,5,6];
+    h.type = h.type || 'good';
+    h.notes = h.notes || {};
+    h.remind = h.remind || '';
+    if(h.target == null) h.target = h.type === 'bad' ? 0 : 1;
+  }
+  D.ver = 2;
+}
+function detectStorage(){
+  try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); storageOK = true; }
+  catch(e){ storageOK = false; $('#storage-warn').classList.remove('hidden'); }
+}
+function load(){
+  if(!storageOK) { migrate(); return; }
+  try {
+    const raw = localStorage.getItem(LSKEY);
+    if(raw) D = Object.assign(DEFAULTS(), JSON.parse(raw));
+    D.pomo = Object.assign(DEFAULTS().pomo, D.pomo || {});
+  } catch(e){}
+  migrate();
+}
+function save(){
+  if(!storageOK) return;
+  try { localStorage.setItem(LSKEY, JSON.stringify(D)); } catch(e){}
+}
+
+/* ================= 遊戲化：等級 / XP ================= */
+const TITLES = ['見習者','自律學徒','習慣築師','恆心行者','紀律騎士','自律大師','時間領主','習慣宗師','鋼鐵意志','傳說'];
+function levelInfo(xp){
+  let lvl = 1, need = 100, rest = xp;
+  while(rest >= need && lvl < 99){ rest -= need; lvl++; need = 100 + (lvl - 1) * 50; }
+  return { lvl, cur: rest, need, title: TITLES[Math.min(TITLES.length - 1, Math.floor((lvl - 1) / 2))] };
+}
+function gainXP(n, label){
+  const before = levelInfo(D.game.xp).lvl;
+  D.game.xp = Math.max(0, D.game.xp + n);
+  const after = levelInfo(D.game.xp).lvl;
+  if(n > 0) showToast(`+${n} XP ⚡ ${label || ''}`, 'xp');
+  if(after > before) showLevelUp(after);
+  checkBadges();
+}
+function showLevelUp(lvl){
+  const li = levelInfo(D.game.xp);
+  const el = $('#lvlup');
+  el.innerHTML = `<div class="l-ico">🎖️</div><div class="l-lv">Lv.${lvl}</div>
+    <div class="l-t">${li.title}</div><div class="muted">等級提升！繼續保持！</div>`;
+  el.classList.remove('hidden');
+  vib([60,80,60,80,180]);
+  const close = () => el.classList.add('hidden');
+  el.onclick = close;
+  setTimeout(close, 2600);
+}
+function showToast(text, cls){
+  const box = $('#toasts');
+  const t = document.createElement('div');
+  t.className = 'toast ' + (cls || '');
+  t.textContent = text;
+  box.appendChild(t);
+  setTimeout(() => t.remove(), 2300);
+}
+function spawnConfetti(){
+  const box = $('#confetti');
+  const icons = ['🎉','⭐','✨','💚','🏆'];
+  for(let i = 0; i < 22; i++){
+    const s = document.createElement('span');
+    s.textContent = icons[i % icons.length];
+    s.style.left = Math.random() * 100 + 'vw';
+    s.style.animationDuration = (1.1 + Math.random() * 1.2) + 's';
+    s.style.animationDelay = (Math.random() * .4) + 's';
+    box.appendChild(s);
+    setTimeout(() => s.remove(), 3000);
+  }
+}
+
+/* ================= 遊戲化：每日任務 ================= */
+const QUEST_DEFS = [
+  { id:'all',   name:'完成今日所有習慣', xp:20, ok:() => { const d = dueHabits(); return d.length > 0 && d.every(h => goodDone(h, todayStr())); }, need:() => D.habits.some(h => h.type === 'good') },
+  { id:'pomo1', name:'完成 1 顆番茄鐘', xp:15, ok:() => (D.pomo.log[todayStr()] || {c:0}).c >= 1, need:() => true },
+  { id:'pomo2', name:'完成 2 顆番茄鐘', xp:15, ok:() => (D.pomo.log[todayStr()] || {c:0}).c >= 2, need:() => true },
+  { id:'todo2', name:'完成 2 項待辦', xp:15, ok:() => D.todos.filter(t => t.doneAt === todayStr()).length >= 2, need:() => true },
+  { id:'diary', name:'寫下今日日記', xp:15, ok:() => { const e = D.diary[todayStr()]; return !!(e && (e.t || e.m != null)); }, need:() => true },
+  { id:'note1', name:'為任一打卡寫備註', xp:15, ok:() => D.habits.some(h => h.notes[todayStr()]), need:() => D.habits.length > 0 },
+  { id:'metric1', name:'記錄一項數值', xp:15, ok:() => D.metrics.some(m => m.log[todayStr()] != null), need:() => D.metrics.length > 0 },
+];
+function todaysQuests(){
+  const ts = todayStr();
+  const pool = QUEST_DEFS.filter(q => q.need());
+  const seed = hashStr(ts);
+  const picked = [];
+  const idx = pool.map((_, i) => i);
+  for(let k = 0; k < Math.min(3, pool.length); k++){
+    const j = (seed + k * 7919) % idx.length;
+    picked.push(pool[idx[j]]);
+    idx.splice(j, 1);
+  }
+  // 「完成所有習慣」若在池中，固定入選（核心任務）
+  const allQ = pool.find(q => q.id === 'all');
+  if(allQ && !picked.includes(allQ)){ picked[0] = allQ; }
+  return picked;
+}
+function checkQuests(){
+  const ts = todayStr();
+  if(!D.game.quests[ts]) D.game.quests[ts] = {};
+  const got = D.game.quests[ts];
+  for(const q of todaysQuests()){
+    if(!got[q.id] && q.ok()){
+      got[q.id] = 1;
+      gainXP(q.xp, '任務：' + q.name);
+      if(q.id === 'all') spawnConfetti();
+    }
+  }
+}
+
+/* ================= 遊戲化：成就徽章 ================= */
+const BADGE_DEFS = [
+  { id:'streak7',  ico:'🔥', name:'七日之火',   ok:() => D.habits.some(h => streak(h) >= 7) },
+  { id:'streak30', ico:'⚔️', name:'三十日紀律', ok:() => D.habits.some(h => streak(h) >= 30) },
+  { id:'streak100',ico:'👑', name:'百日築基',   ok:() => D.habits.some(h => streak(h) >= 100) },
+  { id:'pomo10',   ico:'🍅', name:'專注新手',   ok:() => totalPomos() >= 10 },
+  { id:'pomo50',   ico:'⏰', name:'深度工作者', ok:() => totalPomos() >= 50 },
+  { id:'pomo200',  ico:'🧠', name:'心流大師',   ok:() => totalPomos() >= 200 },
+  { id:'diary7',   ico:'📔', name:'一週日記',   ok:() => diaryStreak() >= 7 },
+  { id:'todo50',   ico:'📝', name:'執行力 50',  ok:() => (D.game.todoCount || 0) >= 50 },
+  { id:'lv5',      ico:'🥈', name:'Lv.5 達成',  ok:() => levelInfo(D.game.xp).lvl >= 5 },
+  { id:'lv10',     ico:'🥇', name:'Lv.10 達成', ok:() => levelInfo(D.game.xp).lvl >= 10 },
+];
+function totalPomos(){ let n = 0; for(const k in D.pomo.log) n += D.pomo.log[k].c; return n; }
+function diaryStreak(){
+  let s = 0, d = new Date();
+  if(!D.diary[fmt(d)]) d = addDays(d, -1);
+  for(let i = 0; i < 3700; i++){
+    const e = D.diary[fmt(d)];
+    if(e && (e.t || e.m != null)) s++; else break;
+    d = addDays(d, -1);
+  }
+  return s;
+}
+function checkBadges(){
+  for(const b of BADGE_DEFS){
+    if(!D.game.badges[b.id] && b.ok()){
+      D.game.badges[b.id] = todayStr();
+      showToast(`🏆 獲得成就「${b.name}」！`);
+      vib([40,60,40]);
+    }
+  }
+}
+
+/* ================= 習慣邏輯 ================= */
+const habitDays = h => h.freq.kind === 'days' ? h.freq.days : [0,1,2,3,4,5,6];
+const isShown = (h, d) => habitDays(h).includes(d.getDay());
+const countFor = (h, ds) => h.log[ds] || 0;
+const goodDone = (h, ds) => h.type === 'good' && countFor(h, ds) >= (h.target || 1);
+const badLimit = h => h.target || 0;
+const badClean = (h, ds) => countFor(h, ds) <= badLimit(h);
+const dueHabits = () => D.habits.filter(h => h.type === 'good' && isShown(h, new Date()));
+
+function weekDoneDays(h, ref, upto){
+  const ws = weekStart(ref);
+  let n = 0;
+  for(let i = 0; i < 7; i++){
+    const d = addDays(ws, i), ds = fmt(d);
+    if(upto && ds > upto) break;
+    if(countFor(h, ds) >= (h.target || 1)) n++;
+  }
+  return n;
+}
+function streak(h){
+  const ts = todayStr();
+  if(h.type === 'bad'){
+    let s = 0, d = new Date();
+    for(let i = 0; i < 3700; i++){
+      const ds = fmt(d);
+      if(ds < h.created) break;
+      if(isShown(h, d)){ if(badClean(h, ds)) s++; else break; }
+      d = addDays(d, -1);
+    }
+    return s;
+  }
+  if(h.freq.kind === 'week'){
+    let s = 0, ref = new Date();
+    if(weekDoneDays(h, ref, ts) >= h.freq.times) s++;
+    ref = addDays(weekStart(ref), -7);
+    for(let i = 0; i < 520; i++){
+      if(fmt(addDays(ref, 6)) < h.created) break;
+      if(weekDoneDays(h, ref, null) >= h.freq.times){ s++; ref = addDays(ref, -7); }
+      else break;
+    }
+    return s;
+  }
+  let s = 0, d = new Date();
+  if(isShown(h, d) && !goodDone(h, fmt(d))) d = addDays(d, -1);
+  for(let i = 0; i < 3700; i++){
+    const ds = fmt(d);
+    if(ds < h.created) break;
+    if(isShown(h, d)){ if(goodDone(h, ds)) s++; else break; }
+    d = addDays(d, -1);
+  }
+  return s;
+}
+function bestStreak(h){
+  if(h.freq.kind === 'week' || h.type === 'bad') return streak(h); // 簡化：顯示目前值
+  let best = 0, cur = 0;
+  let d = new Date(h.created + 'T00:00:00');
+  const end = todayStr();
+  for(let i = 0; i < 3700; i++){
+    const ds = fmt(d);
+    if(ds > end) break;
+    if(isShown(h, d)){
+      if(goodDone(h, ds)){ cur++; if(cur > best) best = cur; }
+      else if(ds !== end) cur = 0;
+    }
+    d = addDays(d, 1);
+  }
+  return best;
+}
+const streakUnit = h => h.freq.kind === 'week' ? '週' : '天';
+function monthDoneCount(h, y, m){
+  let c = 0;
+  for(const ds in h.log){
+    const p = ds.split('-');
+    if(+p[0] === y && +p[1] === m + 1 && h.log[ds] >= (h.target || 1)) c++;
+  }
+  return c;
+}
+
+/* ================= 今日頁 ================= */
+function renderToday(){
+  const el = $('#tab-today');
+  const now = new Date(), ts = todayStr();
+  const goods = dueHabits();
+  const bads = D.habits.filter(h => h.type === 'bad' && isShown(h, now));
+  const doneN = goods.filter(h => goodDone(h, ts)).length;
+  const li = levelInfo(D.game.xp);
+  const pct = goods.length ? Math.round(doneN / goods.length * 100) : 0;
+
+  let html = `<div class="gamebar">
+    <div class="g-top"><span class="lvl-chip">Lv.${li.lvl}</span>
+      <span class="g-title">${li.title}</span>
+      <span class="g-xp">${li.cur} / ${li.need} XP</span></div>
+    <div class="xp-bar"><i style="width:${Math.round(li.cur / li.need * 100)}%"></i></div>
+    ${goods.length ? `<div class="g-day"><span class="big">${doneN} / ${goods.length}</span>
+      <span class="muted">今日習慣完成 ${pct}%</span></div>
+      <div class="bar"><i style="width:${pct}%"></i></div>` : ''}
+  </div>`;
+
+  // 每日任務
+  const got = D.game.quests[ts] || {};
+  const qs = todaysQuests();
+  if(qs.length){
+    html += `<div class="quests"><h3>⚔️ 每日任務 <span class="muted">${qs.filter(q=>got[q.id]).length}/${qs.length}</span></h3>`;
+    for(const q of qs){
+      const dn = !!got[q.id];
+      html += `<div class="quest-row ${dn?'done':''}"><div class="q-mark">✓</div>
+        <div class="q-name">${q.name}</div><div class="q-xp">+${q.xp} XP</div></div>`;
+    }
+    html += `</div>`;
+  }
+
+  if(!D.habits.length){
+    html += `<div class="empty"><span class="e-ico">🌱</span>還沒有任何習慣<br>點右下角「＋」新增，或從範本快速開始</div>`;
+  } else if(!goods.length && !bads.length){
+    html += `<div class="empty"><span class="e-ico">🏖️</span>今天沒有排定的習慣，好好休息！</div>`;
+  }
+
+  for(const h of goods) html += goodCard(h, ts);
+  for(const h of bads) html += badCard(h, ts);
+  el.innerHTML = html;
+  bindHabitCards(el);
+}
+function goodCard(h, ts){
+  const c = countFor(h, ts), t = h.target || 1, dn = goodDone(h, ts);
+  const s = streak(h);
+  let sub = `🔥 連續 ${s} ${streakUnit(h)}`;
+  if(h.freq.kind === 'week') sub += ` · 本週 ${weekDoneDays(h, new Date(), ts)}/${h.freq.times} 天`;
+  if(t > 1) sub += ` · ${c}/${t} 次`;
+  if(h.notes[ts]) sub += ' · ✏️';
+  return `<div class="habit ${dn?'done':''}" data-id="${h.id}" style="--hc:${h.color}">
+    <div class="h-icon">${h.icon}</div>
+    <div class="h-body"><div class="h-name">${esc(h.name)}</div><div class="h-sub">${sub}</div></div>
+    ${t>1 && c>0 ? `<button class="mini" data-minus="${h.id}">−</button>` : ''}
+    <button class="mini" data-note="${h.id}">✏️</button>
+    <div class="h-check">✓</div></div>`;
+}
+function badCard(h, ts){
+  const c = countFor(h, ts), lim = badLimit(h), clean = badClean(h, ts);
+  const s = streak(h);
+  const sub = clean
+    ? `💚 已堅持 ${s} 天 · 今日 ${c}/${lim}`
+    : `<span class="warn">⚠️ 今日超標（${c}/${lim}）</span>`;
+  return `<div class="habit bad ${clean?'':'over'}" data-id="${h.id}" style="--hc:${h.color}">
+    <div class="h-icon">${h.icon}</div>
+    <div class="h-body"><div class="h-name">${esc(h.name)}<span class="muted"> · 戒除</span></div><div class="h-sub">${sub}</div></div>
+    ${c>0 ? `<button class="mini" data-minus="${h.id}">−</button>` : ''}
+    <button class="mini" data-note="${h.id}">✏️</button>
+    <div class="h-check">${c}</div></div>`;
+}
+function bindHabitCards(el){
+  el.querySelectorAll('.habit').forEach(card => {
+    card.addEventListener('click', e => {
+      if(e.target.closest('[data-minus]') || e.target.closest('[data-note]')) return;
+      tapHabit(card.dataset.id, card);
+    });
+    let timer = null;
+    card.addEventListener('touchstart', () => {
+      timer = setTimeout(() => { timer = null; openHabitSheet(card.dataset.id); vib(20); }, 550);
+    }, {passive:true});
+    ['touchend','touchmove','touchcancel'].forEach(ev =>
+      card.addEventListener(ev, () => { if(timer) clearTimeout(timer); timer = null; }, {passive:true}));
+    card.addEventListener('contextmenu', e => { e.preventDefault(); openHabitSheet(card.dataset.id); });
+  });
+  el.querySelectorAll('[data-minus]').forEach(b =>
+    b.addEventListener('click', () => adjustHabit(b.dataset.minus, -1)));
+  el.querySelectorAll('[data-note]').forEach(b =>
+    b.addEventListener('click', () => openNoteSheet(b.dataset.note)));
+}
+function tapHabit(id, card){
+  const h = D.habits.find(x => x.id === id); if(!h) return;
+  const ts = todayStr();
+  if(h.type === 'bad'){
+    h.log[ts] = countFor(h, ts) + 1;
+    if(!badClean(h, ts) && h.log[ts] === badLimit(h) + 1){
+      vib([60,60,120]); showToast('⚠️ 超標了！明天重新出發');
+    } else vib(25);
+  } else {
+    const was = goodDone(h, ts);
+    const t = h.target || 1, c = countFor(h, ts);
+    if(t === 1){ h.log[ts] = c >= 1 ? 0 : 1; if(!h.log[ts]) delete h.log[ts]; }
+    else { if(c >= t) return; h.log[ts] = c + 1; }
+    const now = goodDone(h, ts);
+    if(now && !was){ gainXP(10, esc(h.name)); vib([30,60,30]); if(card) card.classList.add('pulse'); }
+    else if(was && !now){ gainXP(-10); vib(10); }
+    else vib(12);
+  }
+  checkQuests(); save(); renderToday();
+}
+function adjustHabit(id, delta){
+  const h = D.habits.find(x => x.id === id); if(!h) return;
+  const ts = todayStr();
+  const was = goodDone(h, ts);
+  const c = Math.max(0, countFor(h, ts) + delta);
+  if(c === 0) delete h.log[ts]; else h.log[ts] = c;
+  if(h.type === 'good' && was && !goodDone(h, ts)) gainXP(-10);
+  vib(10); checkQuests(); save(); renderToday();
+}
+
+/* ============ 打卡備註 ============ */
+function openNoteSheet(id){
+  const h = D.habits.find(x => x.id === id); if(!h) return;
+  const ts = todayStr();
+  $('#sheet').innerHTML = `<div class="grab"></div>
+    <h2>✏️ ${esc(h.name)}｜今日備註</h2>
+    <textarea id="n-text" placeholder="例如：跑了 5 公里，狀態不錯">${esc(h.notes[ts] || '')}</textarea>
+    <div class="sheet-btns">
+      <button class="btn" id="n-cancel">取消</button>
+      <button class="btn primary" id="n-save">儲存</button></div>`;
+  $('#n-cancel').onclick = closeSheet;
+  $('#n-save').onclick = () => {
+    const v = $('#n-text').value.trim();
+    if(v) h.notes[ts] = v; else delete h.notes[ts];
+    checkQuests(); save(); closeSheet(); renderToday();
+  };
+  openSheet();
+}
+
+/* ============ 範本 ============ */
+const TEMPLATES = [
+  { g:'🏃 運動健康', items:[
+    { n:'運動 30 分鐘', i:'🏃', c:'#34d399' },
+    { n:'喝水 8 杯', i:'💧', c:'#22d3ee', t:8 },
+    { n:'23:30 前上床', i:'😴', c:'#a78bfa' } ]},
+  { g:'📖 學習專注', items:[
+    { n:'閱讀 30 分鐘', i:'📖', c:'#fbbf24' },
+    { n:'學語言 15 分鐘', i:'🗣️', c:'#60a5fa' },
+    { n:'複盤今日工作', i:'💻', c:'#8a97a5' } ]},
+  { g:'🚫 戒除壞習慣', items:[
+    { n:'吃宵夜', i:'🍟', c:'#f87171', bad:1 },
+    { n:'含糖飲料', i:'🥤', c:'#fb923c', bad:1 },
+    { n:'睡前滑手機', i:'📵', c:'#f472b6', bad:1 } ]},
+  { g:'🌱 自我提升', items:[
+    { n:'冥想 10 分鐘', i:'🧘', c:'#a78bfa' },
+    { n:'寫感恩三件事', i:'🙏', c:'#34d399' },
+    { n:'記帳', i:'💰', c:'#fbbf24' } ]},
+];
+
+/* ============ 習慣新增 / 編輯表單 ============ */
+let form = null;
+function openHabitSheet(editId, preset){
+  const h = editId ? D.habits.find(x => x.id === editId) : null;
+  form = h
+    ? { id: h.id, name: h.name, icon: h.icon, color: h.color, type: h.type,
+        kind: h.freq.kind, days: habitDays(h).slice(), times: h.freq.times || 3,
+        target: h.target != null ? h.target : 1, remind: h.remind || '' }
+    : Object.assign({ id: null, name: '', icon: EMOJIS[0], color: COLORS[0], type: 'good',
+        kind: 'days', days: [0,1,2,3,4,5,6], times: 3, target: 1, remind: '' }, preset || {});
+  const isNew = !h;
+  const sheet = $('#sheet');
+  let tmpl = '';
+  if(isNew && !preset){
+    tmpl = `<div class="f-label">快速範本</div>`;
+    for(const g of TEMPLATES){
+      tmpl += `<div class="muted" style="margin:8px 0 6px">${g.g}</div><div class="chip-row">`;
+      g.items.forEach((it, i) => { tmpl += `<button class="chip" data-tmpl="${TEMPLATES.indexOf(g)}-${i}">${it.i} ${it.n}</button>`; });
+      tmpl += `</div>`;
+    }
+  }
+  sheet.innerHTML = `<div class="grab"></div>
+    <h2>${h ? '編輯習慣' : '新增習慣'}</h2>
+    <input type="text" id="f-name" placeholder="習慣名稱" value="${esc(form.name)}" maxlength="30">
+    <div class="f-label">類型</div>
+    <div class="seg" id="f-type">
+      <button data-v="good" class="${form.type==='good'?'sel':''}">💪 好習慣（養成）</button>
+      <button data-v="bad" class="${form.type==='bad'?'sel bad':''}">🚫 壞習慣（戒除）</button>
+    </div>
+    <div class="f-label">圖示</div><div class="emoji-grid" id="f-emoji"></div>
+    <div class="f-label">顏色</div><div class="color-row" id="f-color"></div>
+    <div id="f-freq-wrap">
+      <div class="f-label">頻率</div>
+      <div class="seg" id="f-kind">
+        <button data-v="days" class="${form.kind==='days'?'sel':''}">固定星期</button>
+        <button data-v="week" class="${form.kind==='week'?'sel':''}">每週次數</button>
+      </div>
+      <div id="f-days-wrap" class="${form.kind==='days'?'':'hidden'}">
+        <div class="f-label">重複日</div><div class="day-row" id="f-days"></div>
+      </div>
+      <div id="f-week-wrap" class="${form.kind==='week'?'':'hidden'}">
+        <div class="f-label">每週目標天數（不綁星期幾，較彈性）</div>
+        <div class="stepper"><button id="f-wminus">−</button><span class="val" id="f-wval">${form.times}</span><button id="f-wplus">＋</button><span class="muted">天 / 週</span></div>
+      </div>
+    </div>
+    <div class="f-label" id="f-tlabel">${form.type==='bad'?'每日上限（0 = 完全禁止）':'每日次數'}</div>
+    <div class="stepper"><button id="f-tminus">−</button><span class="val" id="f-tval">${form.target}</span><button id="f-tplus">＋</button></div>
+    <div class="f-label">提醒時間（app 開啟時才會提醒，可留空）</div>
+    <div style="display:flex;gap:8px"><input type="time" id="f-remind" value="${form.remind}" style="flex:1">
+      <button class="btn" id="f-rclear">清除</button></div>
+    ${tmpl}
+    <div class="sheet-btns">
+      ${h ? '<button class="btn danger" id="f-del">刪除</button>' : ''}
+      <button class="btn" id="f-cancel">取消</button>
+      <button class="btn primary" id="f-save">儲存</button></div>`;
+
+  const eg = $('#f-emoji');
+  EMOJIS.forEach(e => {
+    const b = document.createElement('button');
+    b.textContent = e;
+    if(e === form.icon) b.classList.add('sel');
+    b.onclick = () => { form.icon = e; eg.querySelectorAll('button').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); };
+    eg.appendChild(b);
+  });
+  const cr = $('#f-color');
+  COLORS.forEach(c => {
+    const b = document.createElement('button');
+    b.style.background = c;
+    if(c === form.color) b.classList.add('sel');
+    b.onclick = () => { form.color = c; cr.querySelectorAll('button').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); };
+    cr.appendChild(b);
+  });
+  const dr = $('#f-days');
+  DAY_ORDER.forEach(d => {
+    const b = document.createElement('button');
+    b.textContent = WEEK[d];
+    if(form.days.includes(d)) b.classList.add('sel');
+    b.onclick = () => {
+      const i = form.days.indexOf(d);
+      if(i >= 0){ if(form.days.length > 1) form.days.splice(i, 1); } else form.days.push(d);
+      b.classList.toggle('sel', form.days.includes(d));
+    };
+    dr.appendChild(b);
+  });
+  $('#f-type').querySelectorAll('button').forEach(b => b.onclick = () => {
+    form.type = b.dataset.v;
+    $('#f-type').querySelectorAll('button').forEach(x => x.className = '');
+    b.className = form.type === 'bad' ? 'sel bad' : 'sel';
+    if(form.type === 'bad'){ form.kind = 'days'; form.target = 0; }
+    else if(form.target === 0) form.target = 1;
+    $('#f-tval').textContent = form.target;
+    $('#f-tlabel').textContent = form.type === 'bad' ? '每日上限（0 = 完全禁止）' : '每日次數';
+    $('#f-kind').classList.toggle('hidden', form.type === 'bad');
+    $('#f-days-wrap').classList.toggle('hidden', form.kind !== 'days');
+    $('#f-week-wrap').classList.toggle('hidden', form.kind !== 'week');
+  });
+  $('#f-kind').querySelectorAll('button').forEach(b => b.onclick = () => {
+    form.kind = b.dataset.v;
+    $('#f-kind').querySelectorAll('button').forEach(x => x.classList.remove('sel'));
+    b.classList.add('sel');
+    $('#f-days-wrap').classList.toggle('hidden', form.kind !== 'days');
+    $('#f-week-wrap').classList.toggle('hidden', form.kind !== 'week');
+  });
+  $('#f-wminus').onclick = () => { form.times = Math.max(1, form.times - 1); $('#f-wval').textContent = form.times; };
+  $('#f-wplus').onclick = () => { form.times = Math.min(7, form.times + 1); $('#f-wval').textContent = form.times; };
+  const tmin = form.type === 'bad' ? 0 : 1;
+  $('#f-tminus').onclick = () => { form.target = Math.max(form.type === 'bad' ? 0 : 1, form.target - 1); $('#f-tval').textContent = form.target; };
+  $('#f-tplus').onclick = () => { form.target = Math.min(20, form.target + 1); $('#f-tval').textContent = form.target; };
+  $('#f-rclear').onclick = () => { $('#f-remind').value = ''; };
+  sheet.querySelectorAll('[data-tmpl]').forEach(b => b.onclick = () => {
+    const [gi, ii] = b.dataset.tmpl.split('-').map(Number);
+    const it = TEMPLATES[gi].items[ii];
+    openHabitSheet(null, { name: it.n, icon: it.i, color: it.c || COLORS[0],
+      type: it.bad ? 'bad' : 'good', target: it.bad ? 0 : (it.t || 1) });
+  });
+  $('#f-cancel').onclick = closeSheet;
+  $('#f-save').onclick = () => {
+    const name = $('#f-name').value.trim();
+    if(!name){ $('#f-name').focus(); return; }
+    const freq = form.type === 'bad' || form.kind === 'days'
+      ? { kind:'days', days: form.days.slice().sort() }
+      : { kind:'week', times: form.times, days:[0,1,2,3,4,5,6] };
+    const remind = $('#f-remind').value || '';
+    if(remind) askNotifPermission();
+    if(form.id){
+      const t = D.habits.find(x => x.id === form.id);
+      Object.assign(t, { name, icon: form.icon, color: form.color, type: form.type, freq, target: form.target, remind });
+    } else {
+      D.habits.push({ id: uid(), name, icon: form.icon, color: form.color, type: form.type,
+        freq, target: form.target, remind, created: todayStr(), log: {}, notes: {} });
+      showToast('🌱 新習慣建立！');
+    }
+    save(); closeSheet(); renderToday();
+  };
+  if(h) $('#f-del').onclick = () => {
+    if(confirm(`確定刪除「${h.name}」？打卡紀錄將一併刪除。`)){
+      D.habits = D.habits.filter(x => x.id !== h.id);
+      save(); closeSheet(); renderToday();
+    }
+  };
+  openSheet();
+}
+
+/* ================= 待辦頁 ================= */
+function renderTodos(){
+  const list = $('#todo-list');
+  const pending = D.todos.filter(t => !t.done)
+    .sort((a,b) => (a.due||'9999') < (b.due||'9999') ? -1 : (a.due||'9999') > (b.due||'9999') ? 1 : a.created - b.created);
+  const done = D.todos.filter(t => t.done);
+  const ts = todayStr();
+  let html = '';
+  if(!D.todos.length) html = `<div class="empty"><span class="e-ico">📝</span>沒有待辦事項<br>輸入上方欄位新增</div>`;
+  for(const t of pending) html += todoRow(t, ts);
+  if(done.length){
+    html += `<button class="sec-toggle" id="done-toggle">
+      <span>已完成（${done.length}）${D.doneOpen ? '▾' : '▸'}</span>
+      <span class="clear" id="done-clear">清除已完成</span></button>`;
+    if(D.doneOpen) for(const t of done) html += todoRow(t, ts);
+  }
+  list.innerHTML = html;
+
+  list.querySelectorAll('.todo').forEach(row => {
+    row.querySelector('.t-check').addEventListener('click', () => {
+      const t = D.todos.find(x => x.id === row.dataset.id);
+      t.done = !t.done;
+      if(t.done){ t.doneAt = todayStr(); D.game.todoCount = (D.game.todoCount || 0) + 1; gainXP(3, '待辦完成'); vib([20,40,20]); }
+      else { delete t.doneAt; D.game.todoCount = Math.max(0, (D.game.todoCount || 0) - 1); gainXP(-3); vib(10); }
+      checkQuests(); save(); renderTodos();
+    });
+    row.querySelector('.t-del').addEventListener('click', () => {
+      D.todos = D.todos.filter(x => x.id !== row.dataset.id);
+      save(); renderTodos();
+    });
+  });
+  const tg = $('#done-toggle');
+  if(tg){
+    tg.addEventListener('click', e => {
+      if(e.target.id === 'done-clear'){
+        if(confirm('清除所有已完成的待辦？')){ D.todos = D.todos.filter(t => !t.done); save(); }
+      } else { D.doneOpen = !D.doneOpen; save(); }
+      renderTodos();
+    });
+  }
+}
+function todoRow(t, ts){
+  let due = '';
+  if(t.due){
+    const late = !t.done && t.due < ts;
+    const label = t.due === ts ? '今天' : t.due.slice(5).replace('-','/');
+    due = `<div class="t-due ${late?'late':''}">📅 ${label}${late?'（逾期）':''}</div>`;
+  }
+  return `<div class="todo ${t.done?'done':''}" data-id="${t.id}">
+    <div class="t-check">✓</div>
+    <div class="t-body"><div class="t-text">${esc(t.text)}</div>${due}</div>
+    <button class="t-del">✕</button></div>`;
+}
+function addTodo(){
+  const inp = $('#todo-text'), text = inp.value.trim();
+  if(!text) return;
+  D.todos.push({ id: uid(), text, due: $('#todo-date').value || '', done: false, created: Date.now() });
+  inp.value = ''; $('#todo-date').value = '';
+  vib(10); save(); renderTodos(); inp.focus();
+}
+
+/* ================= 日記頁 ================= */
+function renderDiary(){
+  const el = $('#tab-diary');
+  const ts = todayStr();
+  const cur = D.diary[ts] || {};
+  let moods = '';
+  MOODS.forEach((m, i) => { moods += `<button data-m="${i}" class="${cur.m === i ? 'sel' : ''}">${m}</button>`; });
+  let html = `<div class="panel"><h3>今天的心情</h3>
+    <div class="mood-row" id="mood-row">${moods}</div>
+    <textarea id="d-text" placeholder="今天過得如何？寫一句話也很好…">${esc(cur.t || '')}</textarea>
+    <button class="btn primary diary-save" id="d-save">儲存今日日記</button></div>`;
+
+  const days = Object.keys(D.diary).filter(k => k !== ts).sort().reverse().slice(0, 30);
+  if(days.length){
+    html += `<div class="f-label" style="margin-left:2px">過去的紀錄</div>`;
+    for(const k of days){
+      const e = D.diary[k];
+      const d = new Date(k + 'T00:00:00');
+      html += `<div class="diary-entry"><div class="d-head">
+        <span>${k.slice(5).replace('-','/')} 週${WEEK[d.getDay()]}</span>
+        <span>${e.m != null ? MOODS[e.m] : ''}</span></div>
+        ${e.t ? `<div class="d-text">${esc(e.t)}</div>` : ''}</div>`;
+    }
+  }
+  el.innerHTML = html;
+
+  let selMood = cur.m != null ? cur.m : null;
+  $('#mood-row').querySelectorAll('button').forEach(b => b.onclick = () => {
+    selMood = +b.dataset.m;
+    $('#mood-row').querySelectorAll('button').forEach(x => x.classList.remove('sel'));
+    b.classList.add('sel'); vib(10);
+  });
+  $('#d-save').onclick = () => {
+    const t = $('#d-text').value.trim();
+    if(!t && selMood == null){ showToast('選個心情或寫點什麼吧'); return; }
+    const first = !D.diary[ts];
+    D.diary[ts] = { m: selMood, t };
+    if(first) gainXP(5, '日記');
+    vib([20,40,20]); checkQuests(); save(); renderDiary();
+    showToast('📔 已儲存');
+  };
+}
+
+/* ================= 數值追蹤 ================= */
+function metricsPanel(){
+  const ts = todayStr();
+  let rows = '';
+  for(const m of D.metrics){
+    const v = m.log[ts];
+    rows += `<button class="metric-row" data-metric="${m.id}">
+      <span class="m-name">📈 ${esc(m.name)}</span>
+      <span class="m-val">${v != null ? v + ' ' + esc(m.unit || '') : '—'}</span></button>`;
+  }
+  return `<div class="panel"><h3>數值追蹤 <button class="chip" id="metric-add">＋ 新增</button></h3>
+    ${rows || '<div class="muted">記錄體重、飲水量等數字，自動畫出趨勢圖</div>'}</div>`;
+}
+function bindMetrics(root){
+  const add = root.querySelector('#metric-add');
+  if(add) add.onclick = openMetricAddSheet;
+  root.querySelectorAll('[data-metric]').forEach(b =>
+    b.onclick = () => openMetricSheet(b.dataset.metric));
+}
+function openMetricAddSheet(){
+  $('#sheet').innerHTML = `<div class="grab"></div><h2>新增數值追蹤</h2>
+    <div class="f-label">名稱</div><input type="text" id="m-name" placeholder="例如：體重" maxlength="12">
+    <div class="f-label">單位</div><input type="text" id="m-unit" placeholder="例如：kg、ml、頁" maxlength="8">
+    <div class="f-label">常用範本</div>
+    <div class="chip-row">
+      <button class="chip" data-mt="體重|kg">⚖️ 體重</button>
+      <button class="chip" data-mt="飲水量|ml">💧 飲水量</button>
+      <button class="chip" data-mt="閱讀|頁">📖 閱讀頁數</button>
+      <button class="chip" data-mt="跑步|km">🏃 跑步距離</button>
+    </div>
+    <div class="sheet-btns"><button class="btn" id="m-cancel">取消</button>
+    <button class="btn primary" id="m-save">建立</button></div>`;
+  $('#sheet').querySelectorAll('[data-mt]').forEach(b => b.onclick = () => {
+    const [n, u] = b.dataset.mt.split('|');
+    $('#m-name').value = n; $('#m-unit').value = u;
+  });
+  $('#m-cancel').onclick = closeSheet;
+  $('#m-save').onclick = () => {
+    const n = $('#m-name').value.trim();
+    if(!n){ $('#m-name').focus(); return; }
+    D.metrics.push({ id: uid(), name: n, unit: $('#m-unit').value.trim(), log: {} });
+    save(); closeSheet(); renderStats();
+  };
+  openSheet();
+}
+function openMetricSheet(id){
+  const m = D.metrics.find(x => x.id === id); if(!m) return;
+  const ts = todayStr();
+  $('#sheet').innerHTML = `<div class="grab"></div><h2>📈 ${esc(m.name)}</h2>
+    <div class="f-label">今日數值${m.unit ? '（' + esc(m.unit) + '）' : ''}</div>
+    <div style="display:flex;gap:8px">
+      <input type="number" step="any" inputmode="decimal" id="mv-input" value="${m.log[ts] != null ? m.log[ts] : ''}" placeholder="輸入數字" style="flex:1">
+      <button class="btn primary" id="mv-save">記錄</button></div>
+    <div class="spark">${metricChart(m)}</div>
+    <div class="sheet-btns">
+      <button class="btn danger" id="mv-del">刪除此追蹤</button>
+      <button class="btn" id="mv-close">關閉</button></div>`;
+  $('#mv-save').onclick = () => {
+    const v = parseFloat($('#mv-input').value);
+    if(isNaN(v)){ $('#mv-input').focus(); return; }
+    m.log[ts] = v;
+    gainXP(2, esc(m.name)); vib([15,30,15]);
+    checkQuests(); save(); openMetricSheet(id);
+  };
+  $('#mv-del').onclick = () => {
+    if(confirm(`刪除「${m.name}」及其所有紀錄？`)){
+      D.metrics = D.metrics.filter(x => x.id !== id);
+      save(); closeSheet(); renderStats();
+    }
+  };
+  $('#mv-close').onclick = () => { closeSheet(); renderStats(); };
+  openSheet();
+}
+function metricChart(m){
+  const days = [];
+  for(let i = 29; i >= 0; i--){
+    const ds = fmt(addDays(new Date(), -i));
+    if(m.log[ds] != null) days.push({ x: 29 - i, v: m.log[ds] });
+  }
+  if(days.length < 2) return `<div class="muted" style="padding-top:40px;text-align:center">至少記錄 2 天後顯示趨勢圖</div>`;
+  const vs = days.map(d => d.v);
+  const min = Math.min(...vs), max = Math.max(...vs), span = (max - min) || 1;
+  const W = 320, H = 130, P = 22;
+  const px = x => P + x / 29 * (W - P * 2);
+  const py = v => H - P - (v - min) / span * (H - P * 2);
+  const pts = days.map(d => px(d.x).toFixed(1) + ',' + py(d.v).toFixed(1)).join(' ');
+  const dots = days.map(d => `<circle cx="${px(d.x).toFixed(1)}" cy="${py(d.v).toFixed(1)}" r="3" fill="var(--primary)"/>`).join('');
+  const last = days[days.length - 1], first = days[0];
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:100%">
+    <text x="${P}" y="12" fill="var(--on-surface-var)" font-size="10">${max}</text>
+    <text x="${P}" y="${H - 6}" fill="var(--on-surface-var)" font-size="10">${min}</text>
+    <polyline points="${pts}" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linejoin="round"/>
+    ${dots}
+    <text x="${px(last.x) - 8}" y="${py(last.v) - 8}" fill="var(--on-surface)" font-size="11" font-weight="700">${last.v}</text>
+    <text x="${px(first.x)}" y="${py(first.v) - 8}" fill="var(--on-surface-var)" font-size="10">${first.v}</text>
+  </svg>`;
+}
+
+/* ================= 番茄鐘 ================= */
+const RING_C = 553;
+const pomoTotal = mode => (mode === 'work' ? D.pomo.work : D.pomo.rest) * 60;
+function pomoState(){
+  if(!D.pomo.state) D.pomo.state = { mode: 'work', running: false, left: pomoTotal('work') };
+  return D.pomo.state;
+}
+function pomoLeft(){
+  const s = pomoState();
+  return s.running ? Math.max(0, Math.round((s.endsAt - Date.now()) / 1000)) : s.left;
+}
+function beep(){
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [[880,0],[660,.22],[880,.44]].forEach(([f,t]) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(.25, ctx.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + t + .18);
+      o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + .2);
+    });
+  } catch(e){}
+}
+function notify(msg){
+  try {
+    if('Notification' in window && Notification.permission === 'granted')
+      new Notification('我的日常', { body: msg });
+  } catch(e){}
+}
+function askNotifPermission(){
+  try {
+    if('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+  } catch(e){}
+}
+function pomoToggle(){
+  const s = pomoState();
+  if(s.running){ s.left = pomoLeft(); s.running = false; delete s.endsAt; }
+  else {
+    if(s.left <= 0) s.left = pomoTotal(s.mode);
+    s.endsAt = Date.now() + s.left * 1000; s.running = true; delete s.left;
+    askNotifPermission();
+  }
+  vib(15); save(); updatePomoUI();
+}
+function pomoReset(){
+  D.pomo.state = { mode: pomoState().mode, running: false, left: pomoTotal(pomoState().mode) };
+  save(); updatePomoUI();
+}
+function pomoSkip(){
+  const next = pomoState().mode === 'work' ? 'rest' : 'work';
+  D.pomo.state = { mode: next, running: false, left: pomoTotal(next) };
+  save(); updatePomoUI();
+}
+function pomoFinish(){
+  const s = pomoState(), ts = todayStr();
+  if(s.mode === 'work'){
+    const l = D.pomo.log[ts] || { c: 0, m: 0 };
+    l.c++; l.m += D.pomo.work; D.pomo.log[ts] = l;
+    vib([80,80,80,80,200]); beep(); notify('🍅 專注完成！休息 ' + D.pomo.rest + ' 分鐘吧');
+    gainXP(5, '🍅 專注完成');
+    D.pomo.state = { mode: 'rest', running: true, endsAt: Date.now() + pomoTotal('rest') * 1000 };
+  } else {
+    vib([60,60,60]); beep(); notify('☀️ 休息結束，準備開始下一輪！');
+    D.pomo.state = { mode: 'work', running: false, left: pomoTotal('work') };
+  }
+  checkQuests(); save(); updatePomoUI();
+}
+function updatePomoUI(){
+  const s = pomoState(), left = pomoLeft(), total = pomoTotal(s.mode);
+  const mm = pad(Math.floor(left / 60)), ss = pad(left % 60);
+  $('#pomo-time').textContent = mm + ':' + ss;
+  $('#pomo-hint').textContent = s.running ? (s.mode === 'work' ? '保持專注' : '休息中') : (left === total ? '準備開始' : '已暫停');
+  const md = $('#pomo-mode');
+  md.textContent = s.mode === 'work' ? '專 注' : '休 息';
+  md.className = 'pomo-mode ' + (s.running ? (s.mode === 'work' ? 'work-on' : 'rest-on') : '');
+  const ring = $('#ring-fg');
+  ring.style.strokeDashoffset = RING_C * (1 - (total ? left / total : 0));
+  ring.style.stroke = s.mode === 'work' ? 'var(--primary)' : 'var(--tertiary)';
+  $('#pomo-start').textContent = s.running ? '暫停' : (left === total ? '開始' : '繼續');
+  const ts = todayStr(), l = D.pomo.log[ts] || { c: 0, m: 0 };
+  let monthC = 0;
+  const ym = ts.slice(0, 7);
+  for(const k in D.pomo.log) if(k.startsWith(ym)) monthC += D.pomo.log[k].c;
+  $('#pomo-today').innerHTML =
+    `今日 🍅 × <b>${l.c}</b>　專注 <b>${l.m}</b> 分鐘<br><span class="muted">本月累計 ${monthC} 顆 · 每顆 +5 XP</span>`;
+  document.title = s.running ? `${mm}:${ss} · ${s.mode === 'work' ? '專注中' : '休息中'}` : '我的日常';
+}
+
+/* ================= 統計頁 ================= */
+let statY, statM;
+function dayRatio(ds, dObj){
+  const hs = D.habits.filter(h => h.type === 'good' && h.freq.kind === 'days' && h.created <= ds && isShown(h, dObj));
+  if(!hs.length) return null;
+  return hs.filter(h => goodDone(h, ds)).length / hs.length;
+}
+function weekAvg(startD, endStr){
+  let sum = 0, n = 0;
+  for(let i = 0; i < 7; i++){
+    const d = addDays(startD, i), ds = fmt(d);
+    if(ds > endStr) break;
+    const r = dayRatio(ds, d);
+    if(r !== null){ sum += r; n++; }
+  }
+  return n ? sum / n : null;
+}
+function weeklyReport(){
+  const now = new Date(), ts = todayStr();
+  const thisWS = weekStart(now), lastWS = addDays(thisWS, -7);
+  const tAvg = weekAvg(thisWS, ts), lAvg = weekAvg(lastWS, fmt(addDays(thisWS, -1)));
+  let pThis = 0, pLast = 0;
+  for(let i = 0; i < 7; i++){
+    const a = fmt(addDays(thisWS, i)), b = fmt(addDays(lastWS, i));
+    if(a <= ts && D.pomo.log[a]) pThis += D.pomo.log[a].c;
+    if(D.pomo.log[b]) pLast += D.pomo.log[b].c;
+  }
+  // 本週各習慣完成率
+  const rates = [];
+  for(const h of D.habits.filter(x => x.type === 'good' && x.freq.kind === 'days')){
+    let sch = 0, done = 0;
+    for(let i = 0; i < 7; i++){
+      const d = addDays(thisWS, i), ds = fmt(d);
+      if(ds > ts || ds < h.created) continue;
+      if(isShown(h, d)){ sch++; if(goodDone(h, ds)) done++; }
+    }
+    if(sch > 0) rates.push({ h, r: done / sch });
+  }
+  rates.sort((a,b) => b.r - a.r);
+  // 壞習慣本週超標天數
+  let badOver = null;
+  for(const h of D.habits.filter(x => x.type === 'bad')){
+    let over = 0;
+    for(let i = 0; i < 7; i++){
+      const ds = fmt(addDays(thisWS, i));
+      if(ds > ts) break;
+      if(!badClean(h, ds)) over++;
+    }
+    if(over > 0 && (!badOver || over > badOver.over)) badOver = { h, over };
+  }
+  // 教練建議（規則式）
+  const tips = [];
+  if(tAvg !== null && lAvg !== null){
+    const d = Math.round((tAvg - lAvg) * 100);
+    if(d >= 10) tips.push(`📈 完成率比上週提升 ${d}%，系統正在生效，持續就對了！`);
+    else if(d <= -10) tips.push(`別灰心，完成率比上週低了 ${-d}%。試著只守住 1 個最重要的習慣，重建節奏。`);
+  }
+  if(tAvg !== null && tAvg < .5 && D.habits.length > 3)
+    tips.push('🎯 習慣數量可能太多了。教練建議：先專注 2–3 個，完成率穩定後再增加。');
+  if(rates.length && rates[rates.length - 1].r < .34)
+    tips.push(`💡「${esc(rates[rates.length - 1].h.name)}」這週較吃力。試試「兩分鐘法則」：把目標縮小到 2 分鐘就能開始的版本。`);
+  if(badOver)
+    tips.push(`🚫「${esc(badOver.h.name)}」本週超標 ${badOver.over} 天。找出觸發情境（時間、地點、心情），用替代行為取代它。`);
+  if(!tips.length && tAvg !== null && tAvg >= .8)
+    tips.push('🏆 本週完成率超過 80%，非常出色！可以考慮提高一點挑戰，或獎勵自己一下。');
+  if(!tips.length) tips.push('🌱 持續記錄本身就是勝利。明天的每日任務等著你！');
+
+  const pctT = tAvg === null ? '—' : Math.round(tAvg * 100) + '%';
+  const pctL = lAvg === null ? '—' : Math.round(lAvg * 100) + '%';
+  const delta = (tAvg !== null && lAvg !== null)
+    ? (tAvg >= lAvg ? `<span class="up">▲ ${Math.round((tAvg - lAvg) * 100)}%</span>` : `<span class="dn">▼ ${Math.round((lAvg - tAvg) * 100)}%</span>`)
+    : '';
+  let best = rates.length ? `🥇 最佳：${rates[0].h.icon} ${esc(rates[0].h.name)}（${Math.round(rates[0].r * 100)}%）` : '';
+  return `<div class="panel report"><h3>🧭 本週教練回顧</h3>
+    <p>本週完成率 <b>${pctT}</b>（上週 ${pctL}）${delta}</p>
+    <p>本週番茄鐘 <b>${pThis}</b> 顆（上週 ${pLast} 顆）</p>
+    ${best ? `<p>${best}</p>` : ''}
+    ${tips.slice(0, 2).map(t => `<div class="tip">${t}</div>`).join('')}</div>`;
+}
+function renderStats(){
+  const el = $('#tab-stats');
+  const now = new Date(), ts = todayStr();
+  const goods = dueHabits();
+  const doneN = goods.filter(h => goodDone(h, ts)).length;
+  let wkSum = 0, wkN = 0, bars = '';
+  for(let i = 6; i >= 0; i--){
+    const d = addDays(now, -i), r = dayRatio(fmt(d), d);
+    if(r !== null){ wkSum += r; wkN++; }
+    const hpx = r === null ? 0 : Math.round(r * 100);
+    bars += `<div class="wk-col"><div class="wk-bar" style="height:${Math.max(hpx,3)}%"><i style="height:${hpx}%"></i></div>
+      <div class="wk-lb">${i === 0 ? '今' : WEEK[d.getDay()]}</div></div>`;
+  }
+  const wkAvg = wkN ? Math.round(wkSum / wkN * 100) : 0;
+  const pl = D.pomo.log[ts] || { c: 0, m: 0 };
+  const badgeN = Object.keys(D.game.badges).length;
+
+  let html = `<div class="stat-cards">
+    <div class="stat-card"><div class="muted">今日習慣</div><div class="v">${doneN}<small> / ${goods.length}</small></div></div>
+    <div class="stat-card"><div class="muted">近 7 日完成率</div><div class="v">${wkAvg}<small> %</small></div></div>
+    <div class="stat-card"><div class="muted">今日番茄鐘</div><div class="v">${pl.c}<small> 顆 · ${pl.m} 分</small></div></div>
+    <div class="stat-card"><div class="muted">累計 XP</div><div class="v">${D.game.xp}<small> ⚡ · ${badgeN} 徽章</small></div></div>
+  </div>`;
+
+  html += weeklyReport();
+
+  // 月曆熱力圖
+  const first = new Date(statY, statM, 1);
+  const daysInM = new Date(statY, statM + 1, 0).getDate();
+  const lead = (first.getDay() + 6) % 7;
+  let cells = DAY_ORDER.map(d => `<div class="wd">${WEEK[d]}</div>`).join('');
+  for(let i = 0; i < lead; i++) cells += `<div class="hm-cell off"></div>`;
+  for(let day = 1; day <= daysInM; day++){
+    const d = new Date(statY, statM, day), ds = fmt(d);
+    if(ds > ts){ cells += `<div class="hm-cell off"></div>`; continue; }
+    const r = dayRatio(ds, d);
+    let lv = '';
+    if(r !== null && r > 0) lv = r >= 1 ? 'l4' : r >= .66 ? 'l3' : r >= .33 ? 'l2' : 'l1';
+    cells += `<div class="hm-cell ${lv} ${ds === ts ? 'today' : ''}">${day}</div>`;
+  }
+  html += `<div class="panel"><div class="hm-head">
+      <button id="hm-prev">‹</button><h3 style="margin:0">${statY} 年 ${statM + 1} 月</h3><button id="hm-next">›</button>
+    </div><div class="hm-grid">${cells}</div></div>`;
+
+  html += `<div class="panel"><h3>近 7 日完成率</h3><div class="wk-bars">${bars}</div></div>`;
+  html += metricsPanel();
+
+  // 成就徽章
+  let badges = '';
+  for(const b of BADGE_DEFS){
+    const got = D.game.badges[b.id];
+    badges += `<div class="badge ${got ? 'got' : 'locked'}">
+      <div class="b-ico">${b.ico}</div><div class="b-name">${b.name}</div></div>`;
+  }
+  html += `<div class="panel"><h3>🏆 成就徽章 <span class="muted">${badgeN}/${BADGE_DEFS.length}</span></h3>
+    <div class="badge-grid">${badges}</div></div>`;
+
+  if(D.habits.length){
+    let rows = '';
+    for(const h of D.habits){
+      let num;
+      if(h.type === 'bad') num = `💚 堅持 ${streak(h)} 天`;
+      else if(h.freq.kind === 'week') num = `🔥 ${streak(h)} 週<br>本週 ${weekDoneDays(h, now, ts)}/${h.freq.times} 天`;
+      else num = `🔥 ${streak(h)} 天（最佳 ${bestStreak(h)}）<br>本月 ${monthDoneCount(h, now.getFullYear(), now.getMonth())} 次`;
+      rows += `<div class="hs-row" style="--hc:${h.color}">
+        <div class="hs-ico">${h.icon}</div><div class="hs-name">${esc(h.name)}${h.type === 'bad' ? '<span class="muted"> · 戒除</span>' : ''}</div>
+        <div class="hs-num">${num}</div></div>`;
+    }
+    html += `<div class="panel"><h3>習慣總覽</h3>${rows}</div>`;
+  }
+  el.innerHTML = html;
+  $('#hm-prev').onclick = () => { statM--; if(statM < 0){ statM = 11; statY--; } renderStats(); };
+  $('#hm-next').onclick = () => { statM++; if(statM > 11){ statM = 0; statY++; } renderStats(); };
+  bindMetrics(el);
+}
+
+/* ================= 設定 / 備份 ================= */
+function openSettings(){
+  const sheet = $('#sheet');
+  sheet.innerHTML = `<div class="grab"></div><h2>設定</h2>
+    <div class="set-row"><span class="lb">🍅 專注時長（分鐘）</span>
+      <input type="number" id="s-work" min="1" max="120" value="${D.pomo.work}"></div>
+    <div class="set-row"><span class="lb">🍵 休息時長（分鐘）</span>
+      <input type="number" id="s-rest" min="1" max="60" value="${D.pomo.rest}"></div>
+    <div class="set-row"><span class="lb">🔔 開啟通知權限</span>
+      <button class="btn" id="s-notif">要求</button></div>
+    <div class="set-row"><span class="lb">📤 匯出備份（JSON）</span>
+      <button class="btn" id="s-export">匯出</button></div>
+    <div class="set-row"><span class="lb">📥 匯入備份</span>
+      <button class="btn" id="s-import">選擇檔案</button></div>
+    <div class="set-row"><span class="lb" style="color:var(--danger)">🗑️ 清除全部資料</span>
+      <button class="btn danger" id="s-wipe">清除</button></div>
+    <p class="muted" style="line-height:1.7">${storageOK
+      ? '✅ 資料儲存於此瀏覽器本機，不會上傳任何伺服器。建議每週匯出備份。'
+      : '⚠️ 目前開啟方式無法保存資料，請參考使用說明改用正確方式開啟。'}
+      <br>提醒功能限 app 開啟時生效（網頁版限制）。</p>
+    <div class="sheet-btns"><button class="btn primary" id="s-close">完成</button></div>`;
+  const applyDur = () => {
+    D.pomo.work = Math.min(120, Math.max(1, +$('#s-work').value || 25));
+    D.pomo.rest = Math.min(60, Math.max(1, +$('#s-rest').value || 5));
+    if(D.pomo.state && !D.pomo.state.running) D.pomo.state = null;
+    save(); updatePomoUI();
+  };
+  $('#s-work').addEventListener('change', applyDur);
+  $('#s-rest').addEventListener('change', applyDur);
+  $('#s-notif').onclick = askNotifPermission;
+  $('#s-export').onclick = exportData;
+  $('#s-import').onclick = () => $('#import-file').click();
+  $('#s-wipe').onclick = () => {
+    if(confirm('確定清除全部資料？此動作無法復原！')){
+      D = DEFAULTS(); save(); closeSheet(); renderAll();
+    }
+  };
+  $('#s-close').onclick = closeSheet;
+  openSheet();
+}
+function exportData(){
+  const blob = new Blob([JSON.stringify(D, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'myday-backup-' + todayStr() + '.json';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+}
+function importData(file){
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const obj = JSON.parse(r.result);
+      if(!Array.isArray(obj.habits) || !Array.isArray(obj.todos)) throw 0;
+      D = Object.assign(DEFAULTS(), obj);
+      D.pomo = Object.assign(DEFAULTS().pomo, obj.pomo || {});
+      migrate(); save(); renderAll(); closeSheet();
+      alert('匯入完成 ✅');
+    } catch(e){ alert('檔案格式錯誤，匯入失敗'); }
+  };
+  r.readAsText(file);
+}
+
+/* ================= Sheet / 分頁 ================= */
+function openSheet(){ $('#overlay').classList.remove('hidden'); }
+function closeSheet(){ $('#overlay').classList.add('hidden'); $('#sheet').innerHTML = ''; }
+
+let activeTab = 'today';
+function switchTab(name){
+  activeTab = name;
+  $$('.tab').forEach(t => t.classList.add('hidden'));
+  $('#tab-' + name).classList.remove('hidden');
+  $$('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  $('#fab').classList.toggle('hidden', name !== 'today' && name !== 'todo');
+  if(name === 'today') renderToday();
+  if(name === 'todo') renderTodos();
+  if(name === 'diary') renderDiary();
+  if(name === 'stats'){ const n = new Date(); statY = n.getFullYear(); statM = n.getMonth(); renderStats(); }
+  if(name === 'pomo') updatePomoUI();
+  window.scrollTo(0, 0);
+}
+function renderAll(){
+  renderToday(); renderTodos(); updatePomoUI();
+  if(activeTab === 'diary') renderDiary();
+  if(activeTab === 'stats') renderStats();
+}
+
+/* ================= 提醒 ================= */
+const remindFired = {};
+function checkReminders(){
+  const now = new Date(), ts = todayStr();
+  const hhmm = pad(now.getHours()) + ':' + pad(now.getMinutes());
+  for(const h of D.habits){
+    if(!h.remind || !isShown(h, now)) continue;
+    if(h.type === 'good' && goodDone(h, ts)) continue;
+    const key = ts + '|' + h.id;
+    if(remindFired[key]) continue;
+    if(hhmm >= h.remind){
+      remindFired[key] = 1;
+      const msg = h.type === 'bad' ? `${h.icon} 提醒：今天也要遠離「${h.name}」！` : `${h.icon} 該做「${h.name}」囉！`;
+      notify(msg); showToast('🔔 ' + msg); vib([40,60,40]);
+    }
+  }
+}
+
+/* ================= 初始化 ================= */
+let lastDate = todayStr();
+function init(){
+  detectStorage(); load();
+  const now = new Date();
+  statY = now.getFullYear(); statM = now.getMonth();
+  $('#hd-date').textContent = `${now.getMonth() + 1} 月 ${now.getDate()} 日 週${WEEK[now.getDay()]}`;
+
+  $$('.nav-btn').forEach(b => b.addEventListener('click', () => { vib(8); switchTab(b.dataset.tab); }));
+  $('#fab').addEventListener('click', () => {
+    if(activeTab === 'today') openHabitSheet(null);
+    else if(activeTab === 'todo') $('#todo-text').focus();
+  });
+  $('#btn-settings').addEventListener('click', openSettings);
+  $('#todo-add').addEventListener('click', addTodo);
+  $('#todo-text').addEventListener('keydown', e => { if(e.key === 'Enter') addTodo(); });
+  $('#import-file').addEventListener('change', e => {
+    if(e.target.files[0]) importData(e.target.files[0]);
+    e.target.value = '';
+  });
+  $('#overlay').addEventListener('click', e => { if(e.target.id === 'overlay') closeSheet(); });
+
+  renderAll();
+  $('#pomo-start').addEventListener('click', pomoToggle);
+  $('#pomo-reset').addEventListener('click', pomoReset);
+  $('#pomo-skip').addEventListener('click', pomoSkip);
+
+  setInterval(() => {
+    const s = D.pomo.state;
+    if(s && s.running){ if(pomoLeft() <= 0) pomoFinish(); else updatePomoUI(); }
+    const ts = todayStr();
+    if(ts !== lastDate){
+      lastDate = ts;
+      const n = new Date();
+      $('#hd-date').textContent = `${n.getMonth() + 1} 月 ${n.getDate()} 日 週${WEEK[n.getDay()]}`;
+      renderAll();
+    }
+  }, 400);
+  setInterval(checkReminders, 20000);
+  checkReminders();
+  document.addEventListener('visibilitychange', () => { if(!document.hidden){ updatePomoUI(); checkReminders(); } });
+}
+document.addEventListener('DOMContentLoaded', init);
+
+/* M3 ripple state layer */
+document.addEventListener('pointerdown', e => {
+  const t = e.target.closest('.btn,.fab,.habit,.todo,.chip,.nav-btn,.mini,.metric-row,.icon-btn,.quickadd .add');
+  if(!t) return;
+  const r = t.getBoundingClientRect();
+  const s = document.createElement('span');
+  s.className = 'ripple';
+  const d = Math.max(r.width, r.height) * 1.1;
+  s.style.width = s.style.height = d + 'px';
+  s.style.left = (e.clientX - r.left - d / 2) + 'px';
+  s.style.top = (e.clientY - r.top - d / 2) + 'px';
+  t.appendChild(s);
+  setTimeout(() => s.remove(), 520);
+}, { passive: true });
+if('serviceWorker' in navigator && location.protocol === 'https:'){
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
